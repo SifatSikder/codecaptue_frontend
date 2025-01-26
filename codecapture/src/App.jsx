@@ -15,6 +15,7 @@ const CodeCapture = () => {
   const [isLoading, setIsLoading] = useState(false); // Loading state
   const [progress, setProgress] = useState(0); // Progress state
   const [intervalId, setIntervalId] = useState(null); // To clear the interval
+  const [imageZip, setImageZip] = useState(null); // State to store the image folder zip
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -66,11 +67,9 @@ const CodeCapture = () => {
             imagesZip.file(`${imagesFolder}/${filename}`, fileData.async("blob"));
           });
 
+          // Store the generated zip file in the state
           imagesZip.generateAsync({ type: "blob" }).then((content) => {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(content);
-            link.download = "images_folder.zip";
-            link.click();
+            setImageZip(content); // Store the content in the state
           });
 
           // Gradually increase from 95% to 100% after the API response
@@ -118,6 +117,16 @@ const CodeCapture = () => {
     link.click();
 
     toast.success("All files downloaded successfully!");
+  };
+
+  const handleDownloadImages = () => {
+    if (imageZip) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(imageZip);
+      link.download = "images_folder.zip";
+      link.click();
+      toast.success("Images folder downloaded successfully!");
+    }
   };
 
   return (
@@ -215,6 +224,19 @@ const CodeCapture = () => {
             <Button onClick={handleDownloadAll} className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-red-600">
               Download All
             </Button>
+          </div>
+        )}
+
+        {/* Results Section */}
+        {imageZip && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+            <div className="flex justify-between items-center">
+              <p className="font-bold text-gray-700">Generated Notes</p>
+              <Button onClick={handleDownloadImages} className="bg-green-500 text-white hover:bg-green-600">
+                Download Notes
+              </Button>
+            </div>
           </div>
         )}
       </motion.div>
