@@ -91,6 +91,65 @@ const CodeCapture = () => {
         clearInterval(intervalId);
         setIsLoading(false);
       }
+    } else if (type === "Transcribe Video") {
+      toast.info("Transcribing Video. Please wait...");
+      setIsLoading(true);
+      setProgress(1);
+
+      const interval = setInterval(() => {
+        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
+      }, 1000);
+
+      setIntervalId(interval);
+
+      try {
+        const formData = new FormData();
+        videos.forEach((video) => {
+          formData.append("videos", video);
+        });
+
+        const response = await fetch(`${API_BASE_URL}/transcribe_video/`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.transcriptions) {
+            // setResults((prevResults) => [
+            //   ...prevResults,
+            //   ...data.transcriptions.map((t) => ({
+            //     id: t.filename,
+            //     type: "Transcription",
+            //     content: t.content,
+            //   })),
+            // ]);
+            console.log(data.transcriptions);
+            toast.success("Video transcription completed successfully!");
+          } else {
+            toast.error("No transcriptions found.");
+          }
+
+          let gradualProgress = 98;
+          const gradualInterval = setInterval(() => {
+            if (gradualProgress < 100) {
+              setProgress(gradualProgress);
+              gradualProgress++;
+            } else {
+              clearInterval(gradualInterval);
+              setProgress(100);
+            }
+          }, 100);
+        } else {
+          toast.error("Failed to transcribe videos.");
+        }
+      } catch (error) {
+        console.error("Error transcribing videos:", error);
+        toast.error("Error transcribing videos.");
+      } finally {
+        clearInterval(intervalId);
+        setIsLoading(false);
+      }
     }
   };
 
