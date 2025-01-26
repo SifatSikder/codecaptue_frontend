@@ -4,14 +4,17 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardFooter } from "@material-tailwind/react";
 import { Button } from "@material-tailwind/react";
 import JSZip from "jszip";
-import { ToastContainer, toast } from "react-toastify"; // Import Toast components
-import "react-toastify/dist/ReactToastify.css"; // Import Toast styles
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 const CodeCapture = () => {
   const [videos, setVideos] = useState([]);
   const [results] = useState([]);
+  const [isLoading, setIsLoading] = useState(false); // Loading state
+  const [progress, setProgress] = useState(0); // Progress state
+  const [intervalId, setIntervalId] = useState(null); // To clear the interval
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -24,7 +27,22 @@ const CodeCapture = () => {
 
   const handleGenerate = async (type) => {
     if (type === "Generate Image Notes") {
-      toast.info("Generating Image Notes. Please wait..."); // Show loading toast
+      toast.info("Generating Image Notes. Please wait...");
+      setIsLoading(true); // Set loading state to true
+      setProgress(1); // Set initial progress to 1%
+
+      // Start the progress increment by 1% every second
+      const interval = setInterval(() => {
+        setProgress((prevProgress) => {
+          if (prevProgress < 98) {
+            return prevProgress + 1; // Increment progress by 1% each second
+          }
+          return prevProgress;
+        });
+      }, 1000); // Increase every 1000ms (1 second)
+
+      setIntervalId(interval);
+
       try {
         const formData = new FormData();
         videos.forEach((video) => {
@@ -55,13 +73,28 @@ const CodeCapture = () => {
             link.click();
           });
 
-          toast.success("Images extracted and zipped into 'images' folder."); // Success toast
+          // Gradually increase from 95% to 100% after the API response
+          let gradualProgress = 98;
+          const gradualInterval = setInterval(() => {
+            if (gradualProgress < 100) {
+              setProgress(gradualProgress);
+              gradualProgress++;
+            } else {
+              clearInterval(gradualInterval);
+              setProgress(100);
+              toast.success("Images extracted and zipped into 'images' folder.");
+            }
+          }, 100); // Increase progress every 100ms
         } else {
-          toast.error("Failed to upload videos."); // Error toast
+          toast.error("Failed to upload videos.");
         }
       } catch (error) {
         console.error("Error uploading videos:", error);
-        toast.error("Error uploading videos."); // Error toast
+        toast.error("Error uploading videos.");
+      } finally {
+        // Clear the progress interval and stop loading
+        clearInterval(intervalId);
+        setIsLoading(false);
       }
     }
   };
@@ -73,7 +106,7 @@ const CodeCapture = () => {
     link.download = `${content.slice(0, 10)}.txt`;
     link.click();
 
-    toast.success("File downloaded successfully!"); // Success toast
+    toast.success("File downloaded successfully!");
   };
 
   const handleDownloadAll = () => {
@@ -84,7 +117,7 @@ const CodeCapture = () => {
     link.download = "all_results.txt";
     link.click();
 
-    toast.success("All files downloaded successfully!"); // Success toast
+    toast.success("All files downloaded successfully!");
   };
 
   return (
@@ -185,6 +218,19 @@ const CodeCapture = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Progress Modal */}
+      {isLoading && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
+            <h2 className="text-2xl font-semibold mb-4">Generating Image Notes...Please wait</h2>
+            <div className="w-full h-2 bg-gray-200 rounded-full">
+              <div className="h-full bg-blue-600 rounded-full" style={{ width: `${progress}%`, transition: "width 0.1s ease" }}></div>
+            </div>
+            <p className="text-center mt-4">{progress}%</p>
+          </div>
+        </div>
+      )}
 
       <ToastContainer />
     </div>
