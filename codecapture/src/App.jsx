@@ -3,12 +3,13 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardFooter } from "@material-tailwind/react";
 import { Button } from "@material-tailwind/react";
+import JSZip from "jszip";
 
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 const CodeCapture = () => {
   const [videos, setVideos] = useState([]);
-  const [results, setResults] = useState([]);
+  const [results] = useState([]);
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -20,34 +21,46 @@ const CodeCapture = () => {
   };
 
   const handleGenerate = async (type) => {
-    if (type === "Extract Source Code") {
+    if (type === "Generate Image Notes") {
+      alert("Generating Image Notes. Please wait...");
       try {
         const formData = new FormData();
+        print(videos);
         videos.forEach((video) => {
           formData.append("videos", video);
         });
 
-        const response = await fetch(`${API_BASE_URL}/hello/`, {
+        const response = await fetch(`${API_BASE_URL}/generate_notes/`, {
           method: "POST",
           body: formData,
         });
 
         if (response.ok) {
-          const data = await response.json();
-          console.log(data);
+          const blob = await response.blob();
+          const zip = await JSZip.loadAsync(blob);
+
+          const imagesFolder = "./images";
+          const imagesZip = new JSZip();
+
+          Object.keys(zip.files).forEach((filename) => {
+            const fileData = zip.files[filename];
+            imagesZip.file(`${imagesFolder}/${filename}`, fileData.async("blob"));
+          });
+
+          imagesZip.generateAsync({ type: "blob" }).then((content) => {
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(content);
+            link.download = "images_folder.zip"; // Name of the new zip with images
+            link.click();
+          });
+
+          alert("Images extracted and zipped into 'images' folder.");
         } else {
-          console.error("Failed to extract source code.");
+          console.error("Failed to upload videos.");
         }
       } catch (error) {
-        console.error("Error extracting source code:", error);
+        console.error("Error uploading videos:", error);
       }
-    } else {
-      const newResults = videos.map((video, index) => ({
-        id: index,
-        type,
-        content: `${type} for ${video.name}`,
-      }));
-      setResults((prev) => [...prev, ...newResults]);
     }
   };
 
