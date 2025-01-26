@@ -15,6 +15,10 @@ const CodeCapture = () => {
     setVideos((prevVideos) => [...prevVideos, ...newFiles]);
   };
 
+  const handleDeleteVideo = (videoToDelete) => {
+    setVideos((prevVideos) => prevVideos.filter((video) => video !== videoToDelete));
+  };
+
   const handleGenerate = async (type) => {
     if (type === "Extract Source Code") {
       try {
@@ -31,12 +35,6 @@ const CodeCapture = () => {
         if (response.ok) {
           const data = await response.json();
           console.log(data);
-          // const newResults = data.results.map((result, index) => ({
-          //   id: index,
-          //   type,
-          //   content: result,
-          // }));
-          // setResults((prev) => [...prev, ...newResults]);
         } else {
           console.error("Failed to extract source code.");
         }
@@ -89,9 +87,42 @@ const CodeCapture = () => {
             <input id="file-upload" type="file" multiple accept="video/*" onChange={handleFileUpload} className="hidden" />
           </label>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {["Extract Source Code", "Generate Workflow", "Generate Transcription and Summary", "Generate Image Notes", "Generate All"].map(
-              (label) => (
+          {/* Video Previews with Delete Option */}
+          {videos.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Video Previews</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {videos.map((video, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="relative">
+                      <video width="320" height="240" controls>
+                        <source src={URL.createObjectURL(video)} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                      <button
+                        onClick={() => handleDeleteVideo(video)}
+                        className="absolute top-0 right-0 text-red-600 hover:text-red-800 font-bold text-xl"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                    <p className="text-center text-gray-700">{video.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Buttons for Actions */}
+          {videos.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+              {[
+                "Extract Source Code",
+                "Generate Workflow",
+                "Generate Transcription and Summary",
+                "Generate Image Notes",
+                "Generate All",
+              ].map((label) => (
                 <Button
                   key={label}
                   onClick={() => handleGenerate(label)}
@@ -99,28 +130,10 @@ const CodeCapture = () => {
                 >
                   {label}
                 </Button>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Video Previews */}
-        {videos.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Video Previews</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {videos.map((video, index) => (
-                <div key={index} className="space-y-2">
-                  <video width="320" height="240" controls>
-                    <source src={URL.createObjectURL(video)} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                  <p className="text-center text-gray-700">{video.name}</p>
-                </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="space-y-4 mt-6">
           {results.map((result) => (
