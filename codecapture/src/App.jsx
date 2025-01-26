@@ -11,15 +11,15 @@ const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 const CodeCapture = () => {
   const [videos, setVideos] = useState([]);
-  const [results, setResults] = useState([]);
+  const [results] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [intervalId, setIntervalId] = useState(null);
   const [imageZip, setImageZip] = useState(null);
   const [codeZip, setCodeZip] = useState(null);
   const [workflowZip, setWorkflowZip] = useState(null);
-  // const [codeZip, setCodeZip] = useState(null);
-  // const [codeZip, setCodeZip] = useState(null);
+  const [summaryZip, setSummaryZip] = useState(null);
+  const [transcriptionZip, setTranscriptionZip] = useState(null);
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -118,21 +118,18 @@ const CodeCapture = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.transcriptions) {
-            setResults((prevResults) => [
-              ...prevResults,
-              ...data.transcriptions.map((t) => ({
-                id: t.filename,
-                type: "Transcription",
-                content: t.content,
-              })),
-            ]);
-            console.log(data.transcriptions);
-            toast.success("Video transcription completed successfully!");
-          } else {
-            toast.error("No transcriptions found.");
-          }
+          const blob = await response.blob();
+          const zip = await JSZip.loadAsync(blob);
+          const extractedTranscriptionZip = new JSZip();
+
+          Object.keys(zip.files).forEach((filename) => {
+            const fileData = zip.files[filename];
+            extractedTranscriptionZip.file(filename, fileData.async("blob"));
+          });
+
+          extractedTranscriptionZip.generateAsync({ type: "blob" }).then((content) => {
+            setTranscriptionZip(content);
+          });
 
           let gradualProgress = 98;
           const gradualInterval = setInterval(() => {
@@ -177,21 +174,18 @@ const CodeCapture = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.summaries) {
-            setResults((prevResults) => [
-              ...prevResults,
-              ...data.summaries.map((t) => ({
-                id: t.filename,
-                type: "Summary",
-                content: t.content,
-              })),
-            ]);
-            console.log(data.summaries);
-            toast.success("Video summarization completed successfully!");
-          } else {
-            toast.error("No summaries found.");
-          }
+          const blob = await response.blob();
+          const zip = await JSZip.loadAsync(blob);
+          const extractedSummaryZip = new JSZip();
+
+          Object.keys(zip.files).forEach((filename) => {
+            const fileData = zip.files[filename];
+            extractedSummaryZip.file(filename, fileData.async("blob"));
+          });
+
+          extractedSummaryZip.generateAsync({ type: "blob" }).then((content) => {
+            setSummaryZip(content);
+          });
 
           let gradualProgress = 98;
           const gradualInterval = setInterval(() => {
@@ -375,6 +369,24 @@ const CodeCapture = () => {
       toast.success("Workflow downloaded successfully!");
     }
   };
+  const handleSummary = () => {
+    if (summaryZip) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(summaryZip);
+      link.download = "generated_summary.zip";
+      link.click();
+      toast.success("Summary downloaded successfully!");
+    }
+  };
+  const handleTranscription = () => {
+    if (transcriptionZip) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(transcriptionZip);
+      link.download = "generated_transcription.zip";
+      link.click();
+      toast.success("Transcription downloaded successfully!");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-800 p-6">
@@ -385,7 +397,6 @@ const CodeCapture = () => {
         className="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl p-8 space-y-6"
       >
         <h1 className="text-4xl font-bold text-center text-gray-800">CodeCapture</h1>
-
         <div className="flex flex-col space-y-4">
           <label
             htmlFor="file-upload"
@@ -441,7 +452,6 @@ const CodeCapture = () => {
             </div>
           )}
         </div>
-
         <div className="space-y-4 mt-6">
           {results.map((result) => (
             <motion.div
@@ -464,7 +474,6 @@ const CodeCapture = () => {
             </motion.div>
           ))}
         </div>
-
         {results.length > 0 && (
           <div className="mt-6 text-center">
             <Button onClick={handleDownloadAll} className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-red-600">
@@ -472,7 +481,6 @@ const CodeCapture = () => {
             </Button>
           </div>
         )}
-
         {imageZip && (
           <div className="mt-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
@@ -502,6 +510,28 @@ const CodeCapture = () => {
               <p className="font-bold text-gray-700">Extracted Workflow</p>
               <Button onClick={handleWorkflow} className="bg-green-500 text-white hover:bg-green-600">
                 Download Workflow
+              </Button>
+            </div>
+          </div>
+        )}
+        {summaryZip && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+            <div className="flex justify-between items-center">
+              <p className="font-bold text-gray-700">Extracted Summary</p>
+              <Button onClick={handleSummary} className="bg-green-500 text-white hover:bg-green-600">
+                Download Summary
+              </Button>
+            </div>
+          </div>
+        )}
+        {transcriptionZip && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+            <div className="flex justify-between items-center">
+              <p className="font-bold text-gray-700">Extracted Transcription</p>
+              <Button onClick={handleTranscription} className="bg-green-500 text-white hover:bg-green-600">
+                Download Transcription
               </Button>
             </div>
           </div>
