@@ -20,6 +20,7 @@ const CodeCapture = () => {
   const [workflowZip, setWorkflowZip] = useState(null);
   const [summaryZip, setSummaryZip] = useState(null);
   const [transcriptionZip, setTranscriptionZip] = useState(null);
+  const [allResultsZip, setAllResultsZip] = useState(null);
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -309,8 +310,63 @@ const CodeCapture = () => {
           toast.error("Failed to find any coding workflows in videos.");
         }
       } catch (error) {
-        console.error("Error finding workflows in videos:", error);
-        toast.error("Error finding workflows in videos.");
+        console.error("Error while generating results in videos:", error);
+        toast.error("Error while generating results in videos.");
+      } finally {
+        clearInterval(intervalId);
+        setIsLoading(false);
+      }
+    } else if (type === "Generate All") {
+      toast.info("Generating Every Results. Please wait...");
+      setIsLoading(true);
+      setProgress(1);
+      const interval = setInterval(() => {
+        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
+      }, 1000);
+
+      setIntervalId(interval);
+
+      try {
+        const formData = new FormData();
+        videos.forEach((video) => {
+          formData.append("videos", video);
+        });
+
+        const response = await fetch(`${API_BASE_URL}/generate_all/`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const zip = await JSZip.loadAsync(blob);
+          const extractedAllResultsZip = new JSZip();
+          Object.keys(zip.files).forEach((filename) => {
+            const fileData = zip.files[filename];
+            extractedAllResultsZip.file(filename, fileData.async("blob"));
+          });
+
+          extractedAllResultsZip.generateAsync({ type: "blob" }).then((content) => {
+            setAllResultsZip(content);
+          });
+          toast.success("All results extraction completed successfully!");
+
+          let gradualProgress = 98;
+          const gradualInterval = setInterval(() => {
+            if (gradualProgress < 100) {
+              setProgress(gradualProgress);
+              gradualProgress++;
+            } else {
+              clearInterval(gradualInterval);
+              setProgress(100);
+            }
+          }, 100);
+        } else {
+          toast.error("Failed to generate any results in videos.");
+        }
+      } catch (error) {
+        console.error("Error while generating results in videos:", error);
+        toast.error("Error while generating results in videos.");
       } finally {
         clearInterval(intervalId);
         setIsLoading(false);
@@ -383,6 +439,15 @@ const CodeCapture = () => {
       link.download = "generated_transcription.zip";
       link.click();
       toast.success("Transcription downloaded successfully!");
+    }
+  };
+  const handleAllResults = () => {
+    if (allResultsZip) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(allResultsZip);
+      link.download = "all_results.zip";
+      link.click();
+      toast.success("All results downloaded successfully!");
     }
   };
 
@@ -530,6 +595,17 @@ const CodeCapture = () => {
               <p className="font-bold text-gray-700">Extracted Transcription</p>
               <Button onClick={handleTranscription} className="bg-green-500 text-white hover:bg-green-600">
                 Download Transcription
+              </Button>
+            </div>
+          </div>
+        )}
+        {allResultsZip && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+            <div className="flex justify-between items-center">
+              <p className="font-bold text-gray-700">Extracted All Results</p>
+              <Button onClick={handleAllResults} className="bg-green-500 text-white hover:bg-green-600">
+                Download All Results
               </Button>
             </div>
           </div>
