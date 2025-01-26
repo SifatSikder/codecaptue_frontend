@@ -16,6 +16,7 @@ const CodeCapture = () => {
   const [progress, setProgress] = useState(0);
   const [intervalId, setIntervalId] = useState(null);
   const [imageZip, setImageZip] = useState(null);
+  const [codeZip, setCodeZip] = useState(null);
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -209,6 +210,62 @@ const CodeCapture = () => {
         clearInterval(intervalId);
         setIsLoading(false);
       }
+    } else if (type === "Extract Source Code") {
+      toast.info("Extracting Source Code. Please wait...");
+      setIsLoading(true);
+      setProgress(1);
+
+      const interval = setInterval(() => {
+        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
+      }, 1000);
+      setIntervalId(interval);
+    }
+    try {
+      const formData = new FormData();
+      videos.forEach((video) => {
+        formData.append("videos", video);
+      });
+
+      const response = await fetch(`${API_BASE_URL}/extract_source_code/`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const zip = await JSZip.loadAsync(blob);
+
+        const extractedCodeZip = new JSZip();
+
+        Object.keys(zip.files).forEach((filename) => {
+          const fileData = zip.files[filename];
+          extractedCodeZip.file(filename, fileData.async("blob"));
+        });
+
+        extractedCodeZip.generateAsync({ type: "blob" }).then((content) => {
+          setCodeZip(content);
+        });
+
+        let gradualProgress = 98;
+        const gradualInterval = setInterval(() => {
+          if (gradualProgress < 100) {
+            setProgress(gradualProgress);
+            gradualProgress++;
+          } else {
+            clearInterval(gradualInterval);
+            setProgress(100);
+            toast.success("Source code extracted and zipped successfully.");
+          }
+        }, 100);
+      } else {
+        toast.error("Failed to extract source code.");
+      }
+    } catch (error) {
+      console.error("Error extracting source code:", error);
+      toast.error("Error extracting source code.");
+    } finally {
+      clearInterval(intervalId);
+      setIsLoading(false);
     }
   };
 
@@ -229,7 +286,6 @@ const CodeCapture = () => {
     link.href = URL.createObjectURL(blob);
     link.download = "all_results.txt";
     link.click();
-
     toast.success("All files downloaded successfully!");
   };
 
@@ -240,6 +296,16 @@ const CodeCapture = () => {
       link.download = "images_folder.zip";
       link.click();
       toast.success("Images folder downloaded successfully!");
+    }
+  };
+
+  const handleSourceCode = () => {
+    if (codeZip) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(codeZip);
+      link.download = "extracted_source_code.zip";
+      link.click();
+      toast.success("Source Code downloaded successfully!");
     }
   };
 
@@ -347,6 +413,17 @@ const CodeCapture = () => {
               <p className="font-bold text-gray-700">Generated Notes</p>
               <Button onClick={handleDownloadImages} className="bg-green-500 text-white hover:bg-green-600">
                 Download Notes
+              </Button>
+            </div>
+          </div>
+        )}
+        {codeZip && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+            <div className="flex justify-between items-center">
+              <p className="font-bold text-gray-700">Extracted Source Codes</p>
+              <Button onClick={handleSourceCode} className="bg-green-500 text-white hover:bg-green-600">
+                Download Source Code
               </Button>
             </div>
           </div>
