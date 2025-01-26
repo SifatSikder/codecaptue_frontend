@@ -1,7 +1,6 @@
 import "./App.css";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Card, CardBody, CardHeader, CardFooter } from "@material-tailwind/react";
 import { Button } from "@material-tailwind/react";
 import JSZip from "jszip";
 import { ToastContainer, toast } from "react-toastify";
@@ -11,16 +10,93 @@ const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 const CodeCapture = () => {
   const [videos, setVideos] = useState([]);
-  const [results] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [intervalId, setIntervalId] = useState(null);
   const [noteZip, setNoteZip] = useState(null);
   const [codeZip, setCodeZip] = useState(null);
   const [workflowZip, setWorkflowZip] = useState(null);
   const [summaryZip, setSummaryZip] = useState(null);
   const [transcriptionZip, setTranscriptionZip] = useState(null);
   const [allResultsZip, setAllResultsZip] = useState(null);
+
+  const handleGenerate = async (type) => {
+    const endpoints = {
+      "Generate Image Notes": "/generate_notes/",
+      "Transcribe Video": "/transcribe_video/",
+      "Generate Summary": "/summarize_video/",
+      "Extract Source Code": "/extract_source_code/",
+      "Generate Workflow": "/extract_workflow/",
+      "Generate All": "/generate_all/",
+    };
+
+    const zipSetters = {
+      "Generate Image Notes": setNoteZip,
+      "Transcribe Video": setTranscriptionZip,
+      "Generate Summary": setSummaryZip,
+      "Extract Source Code": setCodeZip,
+      "Generate Workflow": setWorkflowZip,
+      "Generate All": setAllResultsZip,
+    };
+
+    if (!endpoints[type]) {
+      console.error("Invalid generation type:", type);
+      return;
+    }
+
+    toast.info(`${type}. Please wait...`);
+    setIsLoading(true);
+    setProgress(1);
+
+    const intervalId = setInterval(() => {
+      setProgress((prev) => (prev < 98 ? prev + 1 : prev));
+    }, 1000);
+
+    try {
+      const formData = new FormData();
+      videos.forEach((video) => formData.append("videos", video));
+
+      const response = await fetch(`${API_BASE_URL}${endpoints[type]}`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        toast.error(`Failed to ${type.toLowerCase()}.`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const zip = await JSZip.loadAsync(blob);
+      const extractedZip = new JSZip();
+
+      await Promise.all(
+        Object.keys(zip.files).map(async (filename) => {
+          const fileData = zip.files[filename];
+          extractedZip.file(filename, await fileData.async("blob"));
+        })
+      );
+
+      const content = await extractedZip.generateAsync({ type: "blob" });
+      zipSetters[type](content);
+
+      let gradualProgress = 98;
+      const gradualInterval = setInterval(() => {
+        if (gradualProgress < 100) {
+          setProgress(gradualProgress++);
+        } else {
+          clearInterval(gradualInterval);
+          setProgress(100);
+          toast.success(`${type} completed successfully.`);
+        }
+      }, 100);
+    } catch (error) {
+      console.error(`Error during ${type.toLowerCase()}:`, error);
+      toast.error(`Error during ${type.toLowerCase()}.`);
+    } finally {
+      clearInterval(intervalId);
+      setIsLoading(false);
+    }
+  };
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -29,369 +105,6 @@ const CodeCapture = () => {
 
   const handleDeleteVideo = (videoToDelete) => {
     setVideos((prevVideos) => prevVideos.filter((video) => video !== videoToDelete));
-  };
-
-  const handleGenerate = async (type) => {
-    if (type === "Generate Image Notes") {
-      toast.info("Generating Image Notes. Please wait...");
-      setIsLoading(true);
-      setProgress(1);
-
-      const interval = setInterval(() => {
-        setProgress((prevProgress) => {
-          if (prevProgress < 98) {
-            return prevProgress + 1;
-          }
-          return prevProgress;
-        });
-      }, 1000);
-
-      setIntervalId(interval);
-
-      try {
-        const formData = new FormData();
-        videos.forEach((video) => {
-          formData.append("videos", video);
-        });
-
-        const response = await fetch(`${API_BASE_URL}/generate_notes/`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const zip = await JSZip.loadAsync(blob);
-          const extractedNoteZip = new JSZip();
-
-          Object.keys(zip.files).forEach((filename) => {
-            const fileData = zip.files[filename];
-            extractedNoteZip.file(filename, fileData.async("blob"));
-          });
-
-          extractedNoteZip.generateAsync({ type: "blob" }).then((content) => {
-            setNoteZip(content);
-          });
-
-          let gradualProgress = 98;
-          const gradualInterval = setInterval(() => {
-            if (gradualProgress < 100) {
-              setProgress(gradualProgress);
-              gradualProgress++;
-            } else {
-              clearInterval(gradualInterval);
-              setProgress(100);
-              toast.success("Images extracted and zipped into 'images' folder.");
-            }
-          }, 100);
-        } else {
-          toast.error("Failed to upload videos.");
-        }
-      } catch (error) {
-        console.error("Error uploading videos:", error);
-        toast.error("Error uploading videos.");
-      } finally {
-        clearInterval(intervalId);
-        setIsLoading(false);
-      }
-    } else if (type === "Transcribe Video") {
-      toast.info("Transcribing Video. Please wait...");
-      setIsLoading(true);
-      setProgress(1);
-
-      const interval = setInterval(() => {
-        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
-      }, 1000);
-
-      setIntervalId(interval);
-
-      try {
-        const formData = new FormData();
-        videos.forEach((video) => {
-          formData.append("videos", video);
-        });
-
-        const response = await fetch(`${API_BASE_URL}/transcribe_video/`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const zip = await JSZip.loadAsync(blob);
-          const extractedTranscriptionZip = new JSZip();
-
-          Object.keys(zip.files).forEach((filename) => {
-            const fileData = zip.files[filename];
-            extractedTranscriptionZip.file(filename, fileData.async("blob"));
-          });
-
-          extractedTranscriptionZip.generateAsync({ type: "blob" }).then((content) => {
-            setTranscriptionZip(content);
-          });
-
-          let gradualProgress = 98;
-          const gradualInterval = setInterval(() => {
-            if (gradualProgress < 100) {
-              setProgress(gradualProgress);
-              gradualProgress++;
-            } else {
-              clearInterval(gradualInterval);
-              setProgress(100);
-            }
-          }, 100);
-        } else {
-          toast.error("Failed to transcribe videos.");
-        }
-      } catch (error) {
-        console.error("Error transcribing videos:", error);
-        toast.error("Error transcribing videos.");
-      } finally {
-        clearInterval(intervalId);
-        setIsLoading(false);
-      }
-    } else if (type === "Generate Summary") {
-      toast.info("Summarizing Video. Please wait...");
-      setIsLoading(true);
-      setProgress(1);
-
-      const interval = setInterval(() => {
-        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
-      }, 1000);
-
-      setIntervalId(interval);
-
-      try {
-        const formData = new FormData();
-        videos.forEach((video) => {
-          formData.append("videos", video);
-        });
-
-        const response = await fetch(`${API_BASE_URL}/summarize_video/`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const zip = await JSZip.loadAsync(blob);
-          const extractedSummaryZip = new JSZip();
-
-          Object.keys(zip.files).forEach((filename) => {
-            const fileData = zip.files[filename];
-            extractedSummaryZip.file(filename, fileData.async("blob"));
-          });
-
-          extractedSummaryZip.generateAsync({ type: "blob" }).then((content) => {
-            setSummaryZip(content);
-          });
-
-          let gradualProgress = 98;
-          const gradualInterval = setInterval(() => {
-            if (gradualProgress < 100) {
-              setProgress(gradualProgress);
-              gradualProgress++;
-            } else {
-              clearInterval(gradualInterval);
-              setProgress(100);
-            }
-          }, 100);
-        } else {
-          toast.error("Failed to summarize videos.");
-        }
-      } catch (error) {
-        console.error("Error summarizing videos:", error);
-        toast.error("Error summarizing videos.");
-      } finally {
-        clearInterval(intervalId);
-        setIsLoading(false);
-      }
-    } else if (type === "Extract Source Code") {
-      toast.info("Extracting Source Code. Please wait...");
-      setIsLoading(true);
-      setProgress(1);
-
-      const interval = setInterval(() => {
-        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
-      }, 1000);
-      setIntervalId(interval);
-      try {
-        const formData = new FormData();
-        videos.forEach((video) => {
-          formData.append("videos", video);
-        });
-
-        const response = await fetch(`${API_BASE_URL}/extract_source_code/`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const zip = await JSZip.loadAsync(blob);
-          const extractedWorkflowZip = new JSZip();
-
-          Object.keys(zip.files).forEach((filename) => {
-            const fileData = zip.files[filename];
-            extractedWorkflowZip.file(filename, fileData.async("blob"));
-          });
-
-          extractedWorkflowZip.generateAsync({ type: "blob" }).then((content) => {
-            setCodeZip(content);
-          });
-
-          let gradualProgress = 98;
-          const gradualInterval = setInterval(() => {
-            if (gradualProgress < 100) {
-              setProgress(gradualProgress);
-              gradualProgress++;
-            } else {
-              clearInterval(gradualInterval);
-              setProgress(100);
-              toast.success("Source code extracted and zipped successfully.");
-            }
-          }, 100);
-        } else {
-          toast.error("Failed to extract source code.");
-        }
-      } catch (error) {
-        console.error("Error extracting source code:", error);
-        toast.error("Error extracting source code.");
-      } finally {
-        clearInterval(intervalId);
-        setIsLoading(false);
-      }
-    } else if (type === "Generate Workflow") {
-      toast.info("Generating Workflow. Please wait...");
-      setIsLoading(true);
-      setProgress(1);
-      const interval = setInterval(() => {
-        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
-      }, 1000);
-
-      setIntervalId(interval);
-
-      try {
-        const formData = new FormData();
-        videos.forEach((video) => {
-          formData.append("videos", video);
-        });
-
-        const response = await fetch(`${API_BASE_URL}/extract_workflow/`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const zip = await JSZip.loadAsync(blob);
-          const extractedWorkflowZip = new JSZip();
-          Object.keys(zip.files).forEach((filename) => {
-            const fileData = zip.files[filename];
-            extractedWorkflowZip.file(filename, fileData.async("blob"));
-          });
-
-          extractedWorkflowZip.generateAsync({ type: "blob" }).then((content) => {
-            setWorkflowZip(content);
-          });
-          toast.success("Workflow extraction completed successfully!");
-
-          let gradualProgress = 98;
-          const gradualInterval = setInterval(() => {
-            if (gradualProgress < 100) {
-              setProgress(gradualProgress);
-              gradualProgress++;
-            } else {
-              clearInterval(gradualInterval);
-              setProgress(100);
-            }
-          }, 100);
-        } else {
-          toast.error("Failed to find any coding workflows in videos.");
-        }
-      } catch (error) {
-        console.error("Error while generating results in videos:", error);
-        toast.error("Error while generating results in videos.");
-      } finally {
-        clearInterval(intervalId);
-        setIsLoading(false);
-      }
-    } else if (type === "Generate All") {
-      toast.info("Generating Every Results. Please wait...");
-      setIsLoading(true);
-      setProgress(1);
-      const interval = setInterval(() => {
-        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
-      }, 1000);
-
-      setIntervalId(interval);
-
-      try {
-        const formData = new FormData();
-        videos.forEach((video) => {
-          formData.append("videos", video);
-        });
-
-        const response = await fetch(`${API_BASE_URL}/generate_all/`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const zip = await JSZip.loadAsync(blob);
-          const extractedAllResultsZip = new JSZip();
-          Object.keys(zip.files).forEach((filename) => {
-            const fileData = zip.files[filename];
-            extractedAllResultsZip.file(filename, fileData.async("blob"));
-          });
-
-          extractedAllResultsZip.generateAsync({ type: "blob" }).then((content) => {
-            setAllResultsZip(content);
-          });
-          toast.success("All results extraction completed successfully!");
-
-          let gradualProgress = 98;
-          const gradualInterval = setInterval(() => {
-            if (gradualProgress < 100) {
-              setProgress(gradualProgress);
-              gradualProgress++;
-            } else {
-              clearInterval(gradualInterval);
-              setProgress(100);
-            }
-          }, 100);
-        } else {
-          toast.error("Failed to generate any results in videos.");
-        }
-      } catch (error) {
-        console.error("Error while generating results in videos:", error);
-        toast.error("Error while generating results in videos.");
-      } finally {
-        clearInterval(intervalId);
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleDownload = (content) => {
-    const blob = new Blob([content], { type: "text/plain" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${content.slice(0, 10)}.txt`;
-    link.click();
-
-    toast.success("File downloaded successfully!");
-  };
-
-  const handleDownloadAll = () => {
-    const allContent = results.map((res) => res.content).join("\n\n");
-    const blob = new Blob([allContent], { type: "text/plain" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "all_results.txt";
-    link.click();
-    toast.success("All files downloaded successfully!");
   };
 
   const handleNote = () => {
@@ -515,35 +228,6 @@ const CodeCapture = () => {
             </div>
           )}
         </div>
-        <div className="space-y-4 mt-6">
-          {results.map((result) => (
-            <motion.div
-              key={result.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              <Card className="shadow-lg border border-gray-200">
-                <CardHeader className="bg-gray-100 p-4 font-semibold">{result.type}</CardHeader>
-                <CardBody className="p-4">
-                  <p className="text-gray-700">{result.content}</p>
-                </CardBody>
-                <CardFooter className="p-4 flex justify-end">
-                  <Button onClick={() => handleDownload(result.content)} className="bg-blue-500 text-white hover:bg-blue-600">
-                    Download
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-        {results.length > 0 && (
-          <div className="mt-6 text-center">
-            <Button onClick={handleDownloadAll} className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-red-600">
-              Download All
-            </Button>
-          </div>
-        )}
         {noteZip && (
           <div className="mt-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
