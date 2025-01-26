@@ -17,6 +17,9 @@ const CodeCapture = () => {
   const [intervalId, setIntervalId] = useState(null);
   const [imageZip, setImageZip] = useState(null);
   const [codeZip, setCodeZip] = useState(null);
+  const [workflowZip, setWorkflowZip] = useState(null);
+  // const [codeZip, setCodeZip] = useState(null);
+  // const [codeZip, setCodeZip] = useState(null);
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -233,15 +236,14 @@ const CodeCapture = () => {
         if (response.ok) {
           const blob = await response.blob();
           const zip = await JSZip.loadAsync(blob);
-
-          const extractedCodeZip = new JSZip();
+          const extractedWorkflowZip = new JSZip();
 
           Object.keys(zip.files).forEach((filename) => {
             const fileData = zip.files[filename];
-            extractedCodeZip.file(filename, fileData.async("blob"));
+            extractedWorkflowZip.file(filename, fileData.async("blob"));
           });
 
-          extractedCodeZip.generateAsync({ type: "blob" }).then((content) => {
+          extractedWorkflowZip.generateAsync({ type: "blob" }).then((content) => {
             setCodeZip(content);
           });
 
@@ -288,21 +290,18 @@ const CodeCapture = () => {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.workflows) {
-            setResults((prevResults) => [
-              ...prevResults,
-              ...data.workflows.map((t) => ({
-                id: t.filename,
-                type: "Workflow",
-                content: t.content,
-              })),
-            ]);
-            console.log(data.workflows);
-            toast.success("Workflow extraction completed successfully!");
-          } else {
-            toast.error("No workflows found.");
-          }
+          const blob = await response.blob();
+          const zip = await JSZip.loadAsync(blob);
+          const extractedWorkflowZip = new JSZip();
+          Object.keys(zip.files).forEach((filename) => {
+            const fileData = zip.files[filename];
+            extractedWorkflowZip.file(filename, fileData.async("blob"));
+          });
+
+          extractedWorkflowZip.generateAsync({ type: "blob" }).then((content) => {
+            setWorkflowZip(content);
+          });
+          toast.success("Workflow extraction completed successfully!");
 
           let gradualProgress = 98;
           const gradualInterval = setInterval(() => {
@@ -364,6 +363,16 @@ const CodeCapture = () => {
       link.download = "extracted_source_code.zip";
       link.click();
       toast.success("Source Code downloaded successfully!");
+    }
+  };
+
+  const handleWorkflow = () => {
+    if (workflowZip) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(workflowZip);
+      link.download = "generated_workflow.zip";
+      link.click();
+      toast.success("Workflow downloaded successfully!");
     }
   };
 
@@ -482,6 +491,17 @@ const CodeCapture = () => {
               <p className="font-bold text-gray-700">Extracted Source Codes</p>
               <Button onClick={handleSourceCode} className="bg-green-500 text-white hover:bg-green-600">
                 Download Source Code
+              </Button>
+            </div>
+          </div>
+        )}
+        {workflowZip && (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+            <div className="flex justify-between items-center">
+              <p className="font-bold text-gray-700">Extracted Workflow</p>
+              <Button onClick={handleWorkflow} className="bg-green-500 text-white hover:bg-green-600">
+                Download Workflow
               </Button>
             </div>
           </div>
