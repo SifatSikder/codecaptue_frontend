@@ -15,7 +15,7 @@ const CodeCapture = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [intervalId, setIntervalId] = useState(null);
-  const [imageZip, setImageZip] = useState(null);
+  const [noteZip, setNoteZip] = useState(null);
   const [codeZip, setCodeZip] = useState(null);
   const [workflowZip, setWorkflowZip] = useState(null);
   const [summaryZip, setSummaryZip] = useState(null);
@@ -61,17 +61,15 @@ const CodeCapture = () => {
         if (response.ok) {
           const blob = await response.blob();
           const zip = await JSZip.loadAsync(blob);
-
-          const imagesFolder = "./images";
-          const imagesZip = new JSZip();
+          const extractedNoteZip = new JSZip();
 
           Object.keys(zip.files).forEach((filename) => {
             const fileData = zip.files[filename];
-            imagesZip.file(`${imagesFolder}/${filename}`, fileData.async("blob"));
+            extractedNoteZip.file(filename, fileData.async("blob"));
           });
 
-          imagesZip.generateAsync({ type: "blob" }).then((content) => {
-            setImageZip(content);
+          extractedNoteZip.generateAsync({ type: "blob" }).then((content) => {
+            setNoteZip(content);
           });
 
           let gradualProgress = 98;
@@ -340,13 +338,13 @@ const CodeCapture = () => {
     toast.success("All files downloaded successfully!");
   };
 
-  const handleDownloadImages = () => {
-    if (imageZip) {
+  const handleNote = () => {
+    if (noteZip) {
       const link = document.createElement("a");
-      link.href = URL.createObjectURL(imageZip);
-      link.download = "images_folder.zip";
+      link.href = URL.createObjectURL(noteZip);
+      link.download = "generated_note.zip";
       link.click();
-      toast.success("Images folder downloaded successfully!");
+      toast.success("Generated Note downloaded successfully!");
     }
   };
 
@@ -481,12 +479,12 @@ const CodeCapture = () => {
             </Button>
           </div>
         )}
-        {imageZip && (
+        {noteZip && (
           <div className="mt-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
             <div className="flex justify-between items-center">
               <p className="font-bold text-gray-700">Generated Notes</p>
-              <Button onClick={handleDownloadImages} className="bg-green-500 text-white hover:bg-green-600">
+              <Button onClick={handleNote} className="bg-green-500 text-white hover:bg-green-600">
                 Download Notes
               </Button>
             </div>
