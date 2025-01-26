@@ -25,7 +25,6 @@ const CodeCapture = () => {
       alert("Generating Image Notes. Please wait...");
       try {
         const formData = new FormData();
-        print(videos);
         videos.forEach((video) => {
           formData.append("videos", video);
         });
@@ -50,7 +49,7 @@ const CodeCapture = () => {
           imagesZip.generateAsync({ type: "blob" }).then((content) => {
             const link = document.createElement("a");
             link.href = URL.createObjectURL(content);
-            link.download = "images_folder.zip"; // Name of the new zip with images
+            link.download = "images_folder.zip";
             link.click();
           });
 
