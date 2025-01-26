@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardFooter } from "@material-tailwind/react";
 import { Button } from "@material-tailwind/react";
 import JSZip from "jszip";
+import { ToastContainer, toast } from "react-toastify"; // Import Toast components
+import "react-toastify/dist/ReactToastify.css"; // Import Toast styles
 
 const API_BASE_URL = "http://127.0.0.1:8000/api";
 
@@ -22,7 +24,7 @@ const CodeCapture = () => {
 
   const handleGenerate = async (type) => {
     if (type === "Generate Image Notes") {
-      alert("Generating Image Notes. Please wait...");
+      toast.info("Generating Image Notes. Please wait..."); // Show loading toast
       try {
         const formData = new FormData();
         videos.forEach((video) => {
@@ -53,12 +55,13 @@ const CodeCapture = () => {
             link.click();
           });
 
-          alert("Images extracted and zipped into 'images' folder.");
+          toast.success("Images extracted and zipped into 'images' folder."); // Success toast
         } else {
-          console.error("Failed to upload videos.");
+          toast.error("Failed to upload videos."); // Error toast
         }
       } catch (error) {
         console.error("Error uploading videos:", error);
+        toast.error("Error uploading videos."); // Error toast
       }
     }
   };
@@ -69,6 +72,8 @@ const CodeCapture = () => {
     link.href = URL.createObjectURL(blob);
     link.download = `${content.slice(0, 10)}.txt`;
     link.click();
+
+    toast.success("File downloaded successfully!"); // Success toast
   };
 
   const handleDownloadAll = () => {
@@ -78,6 +83,8 @@ const CodeCapture = () => {
     link.href = URL.createObjectURL(blob);
     link.download = "all_results.txt";
     link.click();
+
+    toast.success("All files downloaded successfully!"); // Success toast
   };
 
   return (
@@ -178,6 +185,8 @@ const CodeCapture = () => {
           </div>
         )}
       </motion.div>
+
+      <ToastContainer />
     </div>
   );
 };
