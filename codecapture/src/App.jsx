@@ -12,10 +12,10 @@ const API_BASE_URL = "http://127.0.0.1:8000/api";
 const CodeCapture = () => {
   const [videos, setVideos] = useState([]);
   const [results] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); // Loading state
-  const [progress, setProgress] = useState(0); // Progress state
-  const [intervalId, setIntervalId] = useState(null); // To clear the interval
-  const [imageZip, setImageZip] = useState(null); // State to store the image folder zip
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [intervalId, setIntervalId] = useState(null);
+  const [imageZip, setImageZip] = useState(null);
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -29,18 +29,17 @@ const CodeCapture = () => {
   const handleGenerate = async (type) => {
     if (type === "Generate Image Notes") {
       toast.info("Generating Image Notes. Please wait...");
-      setIsLoading(true); // Set loading state to true
-      setProgress(1); // Set initial progress to 1%
+      setIsLoading(true);
+      setProgress(1);
 
-      // Start the progress increment by 1% every second
       const interval = setInterval(() => {
         setProgress((prevProgress) => {
           if (prevProgress < 98) {
-            return prevProgress + 1; // Increment progress by 1% each second
+            return prevProgress + 1;
           }
           return prevProgress;
         });
-      }, 1000); // Increase every 1000ms (1 second)
+      }, 1000);
 
       setIntervalId(interval);
 
@@ -67,12 +66,10 @@ const CodeCapture = () => {
             imagesZip.file(`${imagesFolder}/${filename}`, fileData.async("blob"));
           });
 
-          // Store the generated zip file in the state
           imagesZip.generateAsync({ type: "blob" }).then((content) => {
-            setImageZip(content); // Store the content in the state
+            setImageZip(content);
           });
 
-          // Gradually increase from 95% to 100% after the API response
           let gradualProgress = 98;
           const gradualInterval = setInterval(() => {
             if (gradualProgress < 100) {
@@ -83,7 +80,7 @@ const CodeCapture = () => {
               setProgress(100);
               toast.success("Images extracted and zipped into 'images' folder.");
             }
-          }, 100); // Increase progress every 100ms
+          }, 100);
         } else {
           toast.error("Failed to upload videos.");
         }
@@ -91,7 +88,6 @@ const CodeCapture = () => {
         console.error("Error uploading videos:", error);
         toast.error("Error uploading videos.");
       } finally {
-        // Clear the progress interval and stop loading
         clearInterval(intervalId);
         setIsLoading(false);
       }
@@ -137,7 +133,7 @@ const CodeCapture = () => {
         transition={{ duration: 0.6 }}
         className="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl p-8 space-y-6"
       >
-        <h1 className="text-4xl font-bold text-center text-gray-800">Codecapture</h1>
+        <h1 className="text-4xl font-bold text-center text-gray-800">CodeCapture</h1>
 
         <div className="flex flex-col space-y-4">
           <label
@@ -148,7 +144,6 @@ const CodeCapture = () => {
             <input id="file-upload" type="file" multiple accept="video/*" onChange={handleFileUpload} className="hidden" />
           </label>
 
-          {/* Video Previews with Delete Option */}
           {videos.length > 0 && (
             <div className="mt-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Video Previews</h2>
@@ -174,13 +169,13 @@ const CodeCapture = () => {
             </div>
           )}
 
-          {/* Buttons for Actions */}
           {videos.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
               {[
                 "Extract Source Code",
                 "Generate Workflow",
-                "Generate Transcription and Summary",
+                "Transcribe Video",
+                "Generate Summary",
                 "Generate Image Notes",
                 "Generate All",
               ].map((label) => (
@@ -227,7 +222,6 @@ const CodeCapture = () => {
           </div>
         )}
 
-        {/* Results Section */}
         {imageZip && (
           <div className="mt-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
@@ -241,7 +235,6 @@ const CodeCapture = () => {
         )}
       </motion.div>
 
-      {/* Progress Modal */}
       {isLoading && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
