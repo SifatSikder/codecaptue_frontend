@@ -1,7 +1,7 @@
 import "./App.css";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardFooter } from "@material-tailwind/react";
+import { Card, CardBody, CardHeader, CardFooter } from "@material-tailwind/react";
 import { Button } from "@material-tailwind/react";
 import JSZip from "jszip";
 import { ToastContainer, toast } from "react-toastify";
@@ -11,7 +11,7 @@ const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 const CodeCapture = () => {
   const [videos, setVideos] = useState([]);
-  const [results] = useState([]);
+  const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [intervalId, setIntervalId] = useState(null);
@@ -116,14 +116,14 @@ const CodeCapture = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.transcriptions) {
-            // setResults((prevResults) => [
-            //   ...prevResults,
-            //   ...data.transcriptions.map((t) => ({
-            //     id: t.filename,
-            //     type: "Transcription",
-            //     content: t.content,
-            //   })),
-            // ]);
+            setResults((prevResults) => [
+              ...prevResults,
+              ...data.transcriptions.map((t) => ({
+                id: t.filename,
+                type: "Transcription",
+                content: t.content,
+              })),
+            ]);
             console.log(data.transcriptions);
             toast.success("Video transcription completed successfully!");
           } else {
@@ -146,6 +146,65 @@ const CodeCapture = () => {
       } catch (error) {
         console.error("Error transcribing videos:", error);
         toast.error("Error transcribing videos.");
+      } finally {
+        clearInterval(intervalId);
+        setIsLoading(false);
+      }
+    } else if (type === "Generate Summary") {
+      toast.info("Summarizing Video. Please wait...");
+      setIsLoading(true);
+      setProgress(1);
+
+      const interval = setInterval(() => {
+        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
+      }, 1000);
+
+      setIntervalId(interval);
+
+      try {
+        const formData = new FormData();
+        videos.forEach((video) => {
+          formData.append("videos", video);
+        });
+
+        const response = await fetch(`${API_BASE_URL}/summarize_video/`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.summaries) {
+            setResults((prevResults) => [
+              ...prevResults,
+              ...data.summaries.map((t) => ({
+                id: t.filename,
+                type: "Summary",
+                content: t.content,
+              })),
+            ]);
+            console.log(data.summaries);
+            toast.success("Video summarization completed successfully!");
+          } else {
+            toast.error("No summaries found.");
+          }
+
+          let gradualProgress = 98;
+          const gradualInterval = setInterval(() => {
+            if (gradualProgress < 100) {
+              setProgress(gradualProgress);
+              gradualProgress++;
+            } else {
+              clearInterval(gradualInterval);
+              setProgress(100);
+            }
+          }, 100);
+        } else {
+          toast.error("Failed to summarize videos.");
+        }
+      } catch (error) {
+        console.error("Error summarizing videos:", error);
+        toast.error("Error summarizing videos.");
       } finally {
         clearInterval(intervalId);
         setIsLoading(false);
@@ -260,9 +319,9 @@ const CodeCapture = () => {
             >
               <Card className="shadow-lg border border-gray-200">
                 <CardHeader className="bg-gray-100 p-4 font-semibold">{result.type}</CardHeader>
-                <CardContent className="p-4">
+                <CardBody className="p-4">
                   <p className="text-gray-700">{result.content}</p>
-                </CardContent>
+                </CardBody>
                 <CardFooter className="p-4 flex justify-end">
                   <Button onClick={() => handleDownload(result.content)} className="bg-blue-500 text-white hover:bg-blue-600">
                     Download
