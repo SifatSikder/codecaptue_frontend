@@ -219,53 +219,111 @@ const CodeCapture = () => {
         setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
       }, 1000);
       setIntervalId(interval);
-    }
-    try {
-      const formData = new FormData();
-      videos.forEach((video) => {
-        formData.append("videos", video);
-      });
-
-      const response = await fetch(`${API_BASE_URL}/extract_source_code/`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const zip = await JSZip.loadAsync(blob);
-
-        const extractedCodeZip = new JSZip();
-
-        Object.keys(zip.files).forEach((filename) => {
-          const fileData = zip.files[filename];
-          extractedCodeZip.file(filename, fileData.async("blob"));
+      try {
+        const formData = new FormData();
+        videos.forEach((video) => {
+          formData.append("videos", video);
         });
 
-        extractedCodeZip.generateAsync({ type: "blob" }).then((content) => {
-          setCodeZip(content);
+        const response = await fetch(`${API_BASE_URL}/extract_source_code/`, {
+          method: "POST",
+          body: formData,
         });
 
-        let gradualProgress = 98;
-        const gradualInterval = setInterval(() => {
-          if (gradualProgress < 100) {
-            setProgress(gradualProgress);
-            gradualProgress++;
-          } else {
-            clearInterval(gradualInterval);
-            setProgress(100);
-            toast.success("Source code extracted and zipped successfully.");
-          }
-        }, 100);
-      } else {
-        toast.error("Failed to extract source code.");
+        if (response.ok) {
+          const blob = await response.blob();
+          const zip = await JSZip.loadAsync(blob);
+
+          const extractedCodeZip = new JSZip();
+
+          Object.keys(zip.files).forEach((filename) => {
+            const fileData = zip.files[filename];
+            extractedCodeZip.file(filename, fileData.async("blob"));
+          });
+
+          extractedCodeZip.generateAsync({ type: "blob" }).then((content) => {
+            setCodeZip(content);
+          });
+
+          let gradualProgress = 98;
+          const gradualInterval = setInterval(() => {
+            if (gradualProgress < 100) {
+              setProgress(gradualProgress);
+              gradualProgress++;
+            } else {
+              clearInterval(gradualInterval);
+              setProgress(100);
+              toast.success("Source code extracted and zipped successfully.");
+            }
+          }, 100);
+        } else {
+          toast.error("Failed to extract source code.");
+        }
+      } catch (error) {
+        console.error("Error extracting source code:", error);
+        toast.error("Error extracting source code.");
+      } finally {
+        clearInterval(intervalId);
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error extracting source code:", error);
-      toast.error("Error extracting source code.");
-    } finally {
-      clearInterval(intervalId);
-      setIsLoading(false);
+    } else if (type === "Generate Workflow") {
+      toast.info("Generating Workflow. Please wait...");
+      setIsLoading(true);
+      setProgress(1);
+      const interval = setInterval(() => {
+        setProgress((prevProgress) => (prevProgress < 98 ? prevProgress + 1 : prevProgress));
+      }, 1000);
+
+      setIntervalId(interval);
+
+      try {
+        const formData = new FormData();
+        videos.forEach((video) => {
+          formData.append("videos", video);
+        });
+
+        const response = await fetch(`${API_BASE_URL}/extract_workflow/`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.workflows) {
+            setResults((prevResults) => [
+              ...prevResults,
+              ...data.workflows.map((t) => ({
+                id: t.filename,
+                type: "Workflow",
+                content: t.content,
+              })),
+            ]);
+            console.log(data.workflows);
+            toast.success("Workflow extraction completed successfully!");
+          } else {
+            toast.error("No workflows found.");
+          }
+
+          let gradualProgress = 98;
+          const gradualInterval = setInterval(() => {
+            if (gradualProgress < 100) {
+              setProgress(gradualProgress);
+              gradualProgress++;
+            } else {
+              clearInterval(gradualInterval);
+              setProgress(100);
+            }
+          }, 100);
+        } else {
+          toast.error("Failed to find any coding workflows in videos.");
+        }
+      } catch (error) {
+        console.error("Error finding workflows in videos:", error);
+        toast.error("Error finding workflows in videos.");
+      } finally {
+        clearInterval(intervalId);
+        setIsLoading(false);
+      }
     }
   };
 
