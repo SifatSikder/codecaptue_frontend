@@ -6,8 +6,8 @@ import { Button } from "@material-tailwind/react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// const BASE_URL = "http://127.0.0.1:8000";
-const BASE_URL = "https://8c1a-35-240-251-29.ngrok-free.app";
+const BASE_URL = "http://127.0.0.1:8000";
+// const BASE_URL = "https://8c1a-35-240-251-29.ngrok-free.app";
 const API_BASE_URL = `${BASE_URL}/api`;
 
 const endpoints = {
