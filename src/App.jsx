@@ -193,7 +193,7 @@ import "./App.css";
 const App = () => {
   return (
     <div>
-      <h1>Hello</h1>
+      <h4>Hello</h4>
     </div>
   );
 };
