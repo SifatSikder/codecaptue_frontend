@@ -6,7 +6,9 @@ import { Button } from "@material-tailwind/react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+// const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "https://7b03-35-204-166-16.ngrok-free.app";
+const API_BASE_URL = `${BASE_URL}/api`;
 
 const endpoints = {
   "Generate Image Notes": "/generate_notes/",
