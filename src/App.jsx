@@ -161,16 +161,22 @@ const CodeCapture = () => {
     setActiveTab(tab);
   };
 
-  const handleAddMoreInput = () => {
+  const handleAddVideoLink = () => {
     if (videoLinks.length < 3) {
-      setVideoLinks([...videoLinks, ""]);
+      setVideoLinks((prevLinks) => [...prevLinks, ""]);
     }
   };
 
-  const handleInputChange = (index, value) => {
-    const updatedLinks = [...videoLinks];
-    updatedLinks[index] = value;
-    setVideoLinks(updatedLinks);
+  const handleVideoLinkChange = (index, value) => {
+    setVideoLinks((prevLinks) => {
+      const newLinks = [...prevLinks];
+      newLinks[index] = value;
+      return newLinks;
+    });
+  };
+
+  const handleDeleteVideoLink = (index) => {
+    setVideoLinks((prevLinks) => prevLinks.filter((_, i) => i !== index));
   };
 
   const downloadHandlers = Object.keys(zips).reduce((handlers, key) => {
@@ -219,17 +225,24 @@ const CodeCapture = () => {
         {activeTab === "link" && (
           <div className="flex flex-col space-y-4">
             {videoLinks.map((link, index) => (
-              <input
-                key={index}
-                type="text"
-                value={link}
-                onChange={(e) => handleInputChange(index, e.target.value)}
-                className="w-full border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter YouTube Video Link"
-              />
+              <div key={index} className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  className="flex-grow border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter YouTube Video Link"
+                  value={link}
+                  onChange={(e) => handleVideoLinkChange(index, e.target.value)}
+                />
+                <button
+                  onClick={() => handleDeleteVideoLink(index)}
+                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
             ))}
             <button
-              onClick={handleAddMoreInput}
+              onClick={handleAddVideoLink}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50"
               disabled={videoLinks.length >= 3}
             >
