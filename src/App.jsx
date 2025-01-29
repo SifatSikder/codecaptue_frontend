@@ -108,7 +108,7 @@ const CodeCapture = () => {
   const [progress, setProgress] = useState(0);
   const [zips, setZips] = useState({});
   const [activeTab, setActiveTab] = useState("upload");
-  const [videoLinks, setVideoLinks] = useState([]);
+  const [videoLinks, setVideoLinks] = useState([""]);
 
   const handleGenerate = async (type) => {
     if (!endpoints[type]) return;
@@ -161,11 +161,16 @@ const CodeCapture = () => {
     setActiveTab(tab);
   };
 
-  const handleAddVideoLink = (e) => {
-    if (e.key === "Enter" && e.target.value) {
-      setVideoLinks((prevLinks) => [...prevLinks, e.target.value]);
-      e.target.value = "";
+  const handleAddMoreInput = () => {
+    if (videoLinks.length < 3) {
+      setVideoLinks([...videoLinks, ""]);
     }
+  };
+
+  const handleInputChange = (index, value) => {
+    const updatedLinks = [...videoLinks];
+    updatedLinks[index] = value;
+    setVideoLinks(updatedLinks);
   };
 
   const downloadHandlers = Object.keys(zips).reduce((handlers, key) => {
@@ -213,19 +218,23 @@ const CodeCapture = () => {
         {/* Insert Link Section */}
         {activeTab === "link" && (
           <div className="flex flex-col space-y-4">
-            <input
-              type="text"
-              className="w-full border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter YouTube Video Link and press Enter"
-              onKeyDown={handleAddVideoLink}
-            />
-            <ul className="list-disc pl-5">
-              {videoLinks.map((link, index) => (
-                <li key={index} className="text-gray-700">
-                  {link}
-                </li>
-              ))}
-            </ul>
+            {videoLinks.map((link, index) => (
+              <input
+                key={index}
+                type="text"
+                value={link}
+                onChange={(e) => handleInputChange(index, e.target.value)}
+                className="w-full border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter YouTube Video Link"
+              />
+            ))}
+            <button
+              onClick={handleAddMoreInput}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50"
+              disabled={videoLinks.length >= 3}
+            >
+              Add More
+            </button>
           </div>
         )}
 
