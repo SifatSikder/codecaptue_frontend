@@ -179,10 +179,7 @@ const CodeCapture = () => {
         <h1 className="text-4xl font-bold text-center text-gray-800">CodeCapture</h1>
 
         <UploadSection onUpload={handleFileUpload} videos={videos} onDelete={handleDeleteVideo} />
-
         {videos.length > 0 && <ActionButtons labels={Object.keys(endpoints)} onGenerate={handleGenerate} />}
-
-        {/* Conditionally render the results section */}
         {hasResults && <DownloadSection zips={zips} downloadHandlers={downloadHandlers} />}
       </motion.div>
 
