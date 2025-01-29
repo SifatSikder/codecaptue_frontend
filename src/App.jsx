@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@material-tailwind/react";
 import { ToastContainer, toast } from "react-toastify";
@@ -112,6 +112,13 @@ const CodeCapture = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [zips, setZips] = useState({});
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/delete-folders/`, { method: "POST" })
+      .then((response) => response.json())
+      .then((data) => console.log("Folders deleted:", data))
+      .catch((error) => console.error("Error deleting folders:", error));
+  }, []);
 
   const handleGenerate = async (type) => {
     if (!endpoints[type]) return;
