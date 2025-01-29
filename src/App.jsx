@@ -85,7 +85,7 @@ const ActionButtons = ({ labels, onGenerate }) => (
   </div>
 );
 
-const DownloadSection = ({ zips, downloadHandlers }) => (
+const DownloadSection = ({ zips, downloadHandlers, onGenerateAgain }) => (
   <div className="mt-6">
     <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
     {Object.entries(zips).map(
@@ -93,9 +93,14 @@ const DownloadSection = ({ zips, downloadHandlers }) => (
         zip && (
           <div key={key} className="flex justify-between items-center mb-2">
             <p className="font-bold text-gray-700">{key}</p>
-            <Button onClick={downloadHandlers[key]} className="bg-green-500 text-white hover:bg-green-600">
-              Download {key}
-            </Button>
+            <div className="flex space-x-2">
+              <Button onClick={downloadHandlers[key]} className="bg-green-500 text-white hover:bg-green-600">
+                Download as ZIP
+              </Button>
+              <Button onClick={() => onGenerateAgain(key)} className="bg-blue-500 text-white hover:bg-blue-800">
+                Generate Again
+              </Button>
+            </div>
           </div>
         )
     )}
@@ -168,6 +173,44 @@ const CodeCapture = () => {
 
   const hasResults = Object.keys(zips).length > 0;
 
+  const handleGenerateAgain = async (type) => {
+    if (!endpoints[type]) return;
+
+    toast.info(`${type}. Please wait...`);
+    setIsLoading(true);
+    setProgress(1);
+
+    const intervalId = setInterval(() => {
+      setProgress((prev) => (prev < 98 ? prev + 1 : prev));
+    }, 1000);
+
+    try {
+      // Create the dynamic URL based on type
+      const url = `${API_BASE_URL}${endpoints[type]}generate_again`;
+
+      const response = await fetch(url, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        toast.error(`Failed to ${type.toLowerCase()}.`);
+        return;
+      }
+
+      const blob = await response.blob();
+      setZips((prev) => ({ ...prev, [type]: blob }));
+
+      setProgress(100);
+      toast.success(`${type} regeneration completed successfully.`);
+    } catch (error) {
+      console.error(`Error during ${type.toLowerCase()}:`, error);
+      toast.error(`Error during ${type.toLowerCase()}.`);
+    } finally {
+      clearInterval(intervalId);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-800 p-6">
       <motion.div
@@ -180,7 +223,7 @@ const CodeCapture = () => {
 
         <UploadSection onUpload={handleFileUpload} videos={videos} onDelete={handleDeleteVideo} />
         {videos.length > 0 && <ActionButtons labels={Object.keys(endpoints)} onGenerate={handleGenerate} />}
-        {hasResults && <DownloadSection zips={zips} downloadHandlers={downloadHandlers} />}
+        {hasResults && <DownloadSection zips={zips} downloadHandlers={downloadHandlers} onGenerateAgain={handleGenerateAgain} />}
       </motion.div>
 
       <ProgressModal isLoading={isLoading} progress={progress} />
