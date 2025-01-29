@@ -107,6 +107,8 @@ const CodeCapture = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [zips, setZips] = useState({});
+  const [activeTab, setActiveTab] = useState("upload");
+  const [videoLinks, setVideoLinks] = useState([]);
 
   const handleGenerate = async (type) => {
     if (!endpoints[type]) return;
@@ -155,6 +157,17 @@ const CodeCapture = () => {
     setVideos((prevVideos) => prevVideos.filter((video) => video !== videoToDelete));
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
+  const handleAddVideoLink = (e) => {
+    if (e.key === "Enter" && e.target.value) {
+      setVideoLinks((prevLinks) => [...prevLinks, e.target.value]);
+      e.target.value = "";
+    }
+  };
+
   const downloadHandlers = Object.keys(zips).reduce((handlers, key) => {
     handlers[key] = () => {
       const link = document.createElement("a");
@@ -178,9 +191,45 @@ const CodeCapture = () => {
       >
         <h1 className="text-4xl font-bold text-center text-gray-800">CodeCapture</h1>
 
-        <UploadSection onUpload={handleFileUpload} videos={videos} onDelete={handleDeleteVideo} />
+        {/* Tabs Navigation */}
+        <div className="flex justify-center space-x-4 border-b pb-2">
+          <button
+            className={`px-4 py-2 text-lg font-semibold ${activeTab === "upload" ? "border-b-4 border-blue-500" : "text-gray-600"}`}
+            onClick={() => handleTabChange("upload")}
+          >
+            Upload Video
+          </button>
+          <button
+            className={`px-4 py-2 text-lg font-semibold ${activeTab === "link" ? "border-b-4 border-blue-500" : "text-gray-600"}`}
+            onClick={() => handleTabChange("link")}
+          >
+            Insert Link
+          </button>
+        </div>
 
-        {videos.length > 0 && <ActionButtons labels={Object.keys(endpoints)} onGenerate={handleGenerate} />}
+        {/* Upload Video Section */}
+        {activeTab === "upload" && <UploadSection onUpload={handleFileUpload} videos={videos} onDelete={handleDeleteVideo} />}
+
+        {/* Insert Link Section */}
+        {activeTab === "link" && (
+          <div className="flex flex-col space-y-4">
+            <input
+              type="text"
+              className="w-full border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter YouTube Video Link and press Enter"
+              onKeyDown={handleAddVideoLink}
+            />
+            <ul className="list-disc pl-5">
+              {videoLinks.map((link, index) => (
+                <li key={index} className="text-gray-700">
+                  {link}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {videos.length > 0 && activeTab === "upload" && <ActionButtons labels={Object.keys(endpoints)} onGenerate={handleGenerate} />}
 
         {/* Conditionally render the results section */}
         {hasResults && <DownloadSection zips={zips} downloadHandlers={downloadHandlers} />}
