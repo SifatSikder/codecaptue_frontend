@@ -220,7 +220,9 @@ const CodeCapture = () => {
         className="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl p-8 space-y-6"
       >
         <h1 className="text-4xl font-bold text-center text-gray-800">CodeCapture</h1>
-
+        <h2 className="text-xl font-semibold text-center text-gray-700 mt-2">
+          A Tool for Automated Source Code, Workflow, Transcription and Summary Extraction from Programming Video Tutorials
+        </h2>
         <UploadSection onUpload={handleFileUpload} videos={videos} onDelete={handleDeleteVideo} />
         {videos.length > 0 && <ActionButtons labels={Object.keys(endpoints)} onGenerate={handleGenerate} />}
         {hasResults && <DownloadSection zips={zips} downloadHandlers={downloadHandlers} onGenerateAgain={handleGenerateAgain} />}
